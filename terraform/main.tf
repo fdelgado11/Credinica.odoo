@@ -21,7 +21,7 @@ module "ssh_key" {
 }
 
 # ---------------------------------------------------------------------
-# Módulo 2: Instancia Compute Lightsail
+# Módulo 2: Instancia Compute Lightsail (Ubuntu + Docker + 4GB Swap)
 # ---------------------------------------------------------------------
 module "compute_instance" {
   source            = "./modules/compute_instance"
@@ -45,4 +45,14 @@ module "network_and_firewall" {
   source         = "./modules/network_and_firewall"
   static_ip_name = "${var.project_name}-static-ip"
   instance_name  = module.compute_instance.instance_name
+}
+
+# ---------------------------------------------------------------------
+# Módulo 4: Automatización de Registro DNS A en AWS Route 53
+# ---------------------------------------------------------------------
+module "route53_dns" {
+  source            = "./modules/route53_dns"
+  route53_zone_name = var.route53_zone_name
+  subdomain_name    = var.subdomain_name
+  target_ip         = module.network_and_firewall.static_ip_address
 }

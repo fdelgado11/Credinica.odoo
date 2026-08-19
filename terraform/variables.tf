@@ -27,3 +27,15 @@ variable "bundle_id" {
   type        = string
   default     = "medium_2_0"
 }
+
+variable "route53_zone_name" {
+  description = "Nombre de la Zona Hospedada existente en AWS Route 53"
+  type        = string
+  default     = "grupocuadel.org"
+}
+
+variable "subdomain_name" {
+  description = "Subdominio completo para acceder a Odoo 19"
+  type        = string
+  default     = "credinica.grupocuadel.org"
+}
