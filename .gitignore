@@ -1,0 +1,13 @@
+# Credenciales y Variables de Entorno
+.env
+
+# Archivos de datos locales y certificados
+data/
+letsencrypt/
+npm-data/
+
+# Logs y temporales
+*.log
+.DS_Store
+*.pem
+

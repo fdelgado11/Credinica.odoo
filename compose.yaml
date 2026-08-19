@@ -1,0 +1,83 @@
+services:
+  # -----------------------------------------------------------------
+  # 1. NGINX Proxy Manager (Administrador de Proxy y Certificados SSL)
+  # -----------------------------------------------------------------
+  npm-app:
+    image: 'jc21/nginx-proxy-manager:2.15.1'
+    container_name: npm-app
+    restart: unless-stopped
+    ports:
+      - '80:80'     # Tráfico HTTP Público (Necesario para Certificados SSL Let's Encrypt)
+      - '443:443'   # Tráfico HTTPS Seguro Público
+      - '81:81'     # Panel de Administración de NPM (Proteger con AWS Security Group)
+    environment:
+      TZ: '${TZ:-America/Managua}'
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+    networks:
+      - npm-network
+
+  # -----------------------------------------------------------------
+  # 2. Odoo 19 (Sistema ERP & Microfinanzas)
+  # -----------------------------------------------------------------
+  odoo-web:
+    image: odoo:19.0
+    container_name: odoo-web
+    restart: unless-stopped
+    depends_on:
+      odoo-db:
+        condition: service_healthy
+    # No exponemos el puerto 8069 públicamente al host para mayor seguridad.
+    # NPM se comunica con odoo-web internamente mediante la red `npm-network`.
+    expose:
+      - "8069"
+      - "8072"
+    volumes:
+      - odoo-web-data:/var/lib/odoo
+      - ./config:/etc/odoo
+      - ./addons:/mnt/extra-addons
+    environment:
+      - HOST=odoo-db
+      - USER=${POSTGRES_USER:-odoo_user}
+      - PASSWORD=${POSTGRES_PASSWORD:-CAMBIAR_POR_PASSWORD_POSTGRES_SEGURO_123!}
+    networks:
+      - npm-network
+      - backend-network
+
+  # -----------------------------------------------------------------
+  # 3. PostgreSQL Database
+  # -----------------------------------------------------------------
+  odoo-db:
+    image: postgres:16
+    container_name: odoo-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+      - POSTGRES_USER=${POSTGRES_USER:-odoo_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-CAMBIAR_POR_PASSWORD_POSTGRES_SEGURO_123!}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - odoo-db-data:/var/lib/postgresql/data/pgdata
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-odoo_user}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  # Red pública compartida entre NPM y Odoo
+  npm-network:
+    driver: bridge
+  # Red aislada solo entre Odoo y la Base de Datos PostgreSQL
+  backend-network:
+    driver: bridge
+    internal: true
+
+volumes:
+  odoo-web-data:
+  odoo-db-data:
+  npm-data:
+  npm-letsencrypt:
