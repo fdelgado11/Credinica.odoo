@@ -9,7 +9,7 @@ services:
     ports:
       - '80:80'     # Tráfico HTTP Público (Necesario para Certificados SSL Let's Encrypt)
       - '443:443'   # Tráfico HTTPS Seguro Público
-      - '81:81'     # Panel de Administración de NPM (Proteger con AWS Security Group)
+      - '81:81'     # Panel de Administración de NPM
     environment:
       TZ: '${TZ:-America/Managua}'
     volumes:
@@ -25,11 +25,10 @@ services:
     image: odoo:19.0
     container_name: odoo-web
     restart: unless-stopped
+    command: odoo --config=/etc/odoo/odoo.conf --admin-passwd=${ODOO_MASTER_PASSWORD:-CAMBIAR_POR_MASTER_PASSWORD_ODOO_SEGURO_456!}
     depends_on:
       odoo-db:
         condition: service_healthy
-    # No exponemos el puerto 8069 públicamente al host para mayor seguridad.
-    # NPM se comunica con odoo-web internamente mediante la red `npm-network`.
     expose:
       - "8069"
       - "8072"
@@ -68,10 +67,8 @@ services:
       retries: 5
 
 networks:
-  # Red pública compartida entre NPM y Odoo
   npm-network:
     driver: bridge
-  # Red aislada solo entre Odoo y la Base de Datos PostgreSQL
   backend-network:
     driver: bridge
     internal: true
