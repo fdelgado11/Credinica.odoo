@@ -12,20 +12,25 @@ provider "aws" {
   region = var.aws_region
 }
 
-# 1. Crear el Key Pair en AWS Lightsail
-resource "aws_lightsail_key_pair" "odoo_key" {
-  name = "${var.project_name}-key"
+# ---------------------------------------------------------------------
+# Módulo 1: Gestión de la Clave SSH
+# ---------------------------------------------------------------------
+module "ssh_key" {
+  source   = "./modules/ssh_key"
+  key_name = "${var.project_name}-key"
 }
 
-# 2. Crear la Instancia AWS Lightsail (Ubuntu 24.04)
-resource "aws_lightsail_instance" "odoo_instance" {
-  name              = var.project_name
+# ---------------------------------------------------------------------
+# Módulo 2: Instancia Compute Lightsail
+# ---------------------------------------------------------------------
+module "compute_instance" {
+  source            = "./modules/compute_instance"
+  instance_name     = var.project_name
   availability_zone = "${var.aws_region}a"
   blueprint_id      = var.blueprint_id
   bundle_id         = var.bundle_id
-  key_pair_name     = aws_lightsail_key_pair.odoo_key.name
-
-  user_data = file("${path.module}/scripts/user_data.sh")
+  key_pair_name     = module.ssh_key.key_pair_name
+  user_data_script  = file("${path.module}/../scripts/setup_vps.sh")
 
   tags = {
     Environment = var.environment
@@ -33,46 +38,11 @@ resource "aws_lightsail_instance" "odoo_instance" {
   }
 }
 
-# 3. Crear IP Estática
-resource "aws_lightsail_static_ip" "odoo_static_ip" {
-  name = "${var.project_name}-static-ip"
-}
-
-# 4. Asociar IP Estática a la Instancia
-resource "aws_lightsail_static_ip_attachment" "odoo_static_ip_attach" {
-  static_ip_name = aws_lightsail_static_ip.odoo_static_ip.name
-  instance_name  = aws_lightsail_instance.odoo_instance.name
-}
-
-# 5. Configurar el Firewall (Reglas de Puertos)
-resource "aws_lightsail_instance_public_ports" "odoo_firewall" {
-  instance_name = aws_lightsail_instance.odoo_instance.name
-
-  port_info {
-    protocol  = "tcp"
-    from_port = 22
-    to_port   = 22
-    cidrs     = ["0.0.0.0/0"]
-  }
-
-  port_info {
-    protocol  = "tcp"
-    from_port = 80
-    to_port   = 80
-    cidrs     = ["0.0.0.0/0"]
-  }
-
-  port_info {
-    protocol  = "tcp"
-    from_port = 443
-    to_port   = 443
-    cidrs     = ["0.0.0.0/0"]
-  }
-
-  port_info {
-    protocol  = "tcp"
-    from_port = 81
-    to_port   = 81
-    cidrs     = ["0.0.0.0/0"]
-  }
+# ---------------------------------------------------------------------
+# Módulo 3: Redes, IP Estática y Firewall
+# ---------------------------------------------------------------------
+module "network_and_firewall" {
+  source         = "./modules/network_and_firewall"
+  static_ip_name = "${var.project_name}-static-ip"
+  instance_name  = module.compute_instance.instance_name
 }
