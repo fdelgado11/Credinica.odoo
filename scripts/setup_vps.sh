@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # =====================================================================
 # Script de Aprovisionamiento y Optimización para VPS Ubuntu en AWS Lightsail
 # =====================================================================
-set -euo pipefail
+set -e
 
 echo "[1/5] Actualizando repositorios y paquetes del sistema..."
 apt-get update && apt-get upgrade -y

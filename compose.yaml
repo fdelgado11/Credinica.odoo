@@ -25,7 +25,7 @@ services:
     image: odoo:19.0
     container_name: odoo-web
     restart: unless-stopped
-    command: odoo --config=/etc/odoo/odoo.conf --admin-passwd=${ODOO_MASTER_PASSWORD:-CAMBIAR_POR_MASTER_PASSWORD_ODOO_SEGURO_456!}
+    command: odoo --config=/etc/odoo/odoo.conf
     depends_on:
       odoo-db:
         condition: service_healthy

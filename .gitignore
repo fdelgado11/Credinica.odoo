@@ -11,3 +11,8 @@ npm-data/
 .DS_Store
 *.pem
 
+# Terraform local state and plugins
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
